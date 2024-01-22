@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import ObjectList from "./_components/ObjectList";
 import DataPropertyList from "./_components/DataPropertyList";
 import ClassesList from "./_components/ClassesList";
+import Link from "next/link";
 
 export interface Binding {
   [key : string]: {
@@ -31,9 +32,9 @@ export default async function Home () {
         <div className="flex flex-col items-center">
           <h1 className="text-4xl font-bold">Health Ontology</h1>
         </div>
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        <Link href={'/patient'}  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
           Search The Ontology 
-        </button>
+        </Link>
         <div className="flex justify-center gap-8 flex-wrap">
           <Suspense fallback={<div>Loading...</div>}>
             <ObjectList />
