@@ -22,15 +22,31 @@ const PatientDiseases = ({options}: TProps) => {
     const groupedData:any = {};
   
     data.forEach((entry:any)=> {
-      const diseaseUri = entry.disease.value;
-      const symptomUri = entry.symptom.value;
+      let diseaseUri = entry.disease.value;
+      let symptomUri = entry.symptom.value;
+    
+      if(typeof symptomUri !== 'string') {
+        symptomUri = symptomUri.value;
+      }
+
+      if(typeof diseaseUri !== 'string') {
+        diseaseUri = diseaseUri.value;
+      }
+
+      if(groupedData[diseaseUri]) {
+        groupedData[diseaseUri].hasStar = entry.disease.hasStar
+      }
       if (!groupedData[diseaseUri]) {
         groupedData[diseaseUri] = {
+          hasStar: entry.disease.hasStar,
           symptoms: []
         };
       }
   
-      groupedData[diseaseUri].symptoms.push(symptomUri);
+      groupedData[diseaseUri].symptoms.push({
+        hasStar: entry.symptom.hasStar,
+        symptomUri
+      });
     });
   
     return groupedData;
@@ -68,6 +84,7 @@ const PatientDiseases = ({options}: TProps) => {
         method: 'POST',
         body: getDiseasesFromSymptoms
     })
+
     const resSymp = await fetchWrapper<SparqlResults>('http://localhost:3030/HealthReasoner/query',{
         headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
@@ -75,7 +92,29 @@ const PatientDiseases = ({options}: TProps) => {
         method: 'POST',
         body: getSymptomsFromDisease
     })
-    const concated = res?.results.bindings.concat(resSymp?.results.bindings ?? [])
+
+    const diseaseStar = res?.results.bindings.map((dis) => {
+        return {
+            ...dis,
+            symptom: {
+                value: dis.symptom.value,
+                hasStar: true 
+            }
+        }
+
+    }) ?? []
+
+    const sympStar = resSymp?.results.bindings.map((item) => {
+        return {
+            ...item,
+            disease: {
+                value: item.disease.value,
+                hasStar: true 
+            }
+        }
+    }) ?? []
+    const concated = [...diseaseStar, ...sympStar]
+
     setGroupdedDiseases(groupByDisease(concated))
   }
 
@@ -85,25 +124,25 @@ const PatientDiseases = ({options}: TProps) => {
             onSearch(e.target.value)
         }} className="w-full h-10 pl-3 pr-6 text-black placeholder-gray-600 border rounded-lg appearance-none focus:shadow-outline" name="disease">
             {
-                options.map((item) => {
+                options.map((item, index) => {
                 return (
-                    <option key={item.value} value={item.value}>{`${item.value}`}</option>
+                    <option key={index} value={item.value}>{`${item.value}`}</option>
                 )
                 })
             }
         </select>
         <div className="flex flex-col w-full">
             {
-                groupdedDiseases && Object.keys(groupdedDiseases).map((disease) => {
+                groupdedDiseases && Object.keys(groupdedDiseases).map((disease,index) => {
                     return (
-                        <div className='flex flex-col border border-solid rounded-sm p-8 gap-2' key={disease}>
-                            <h1 className="text-2xl font-bold">{disease.split(healthUri)[1]}</h1>
+                        <div className='flex flex-col border border-solid rounded-sm p-8 gap-2' key={index}>
+                            <h1 className="text-2xl font-bold">{groupdedDiseases[disease].hasStar && '*'}{disease.split(healthUri)[1]}</h1>
                             <ul className="flex flex-col justify-between">
                                 {
-                                    groupdedDiseases[disease].symptoms.map((symptom: string) => {
+                                    groupdedDiseases[disease].symptoms.map((symptom:any,index: number) => {
                                         return (
-                                            <li key={symptom} >
-                                                <p className="text-blue-500 hover:text-blue-800">{symptom.split(healthUri)[1]}</p>
+                                            <li key={index} >
+                                                <p className="text-blue-500 hover:text-blue-800">{symptom.hasStar && '*'}{symptom.symptomUri.split(healthUri)[1]}</p>
                                             </li>
                                         )
                                     })
